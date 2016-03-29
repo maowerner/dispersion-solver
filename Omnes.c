@@ -2,6 +2,13 @@
 #include "AngularAverages.h"
 #include "Omnes.h"
 
+// delta - phaseshift delta(s) with s0 <= s <= L2
+// s - Mandelstam s
+// s0 - threshold
+// L2 - cutoff Lambda^2
+// delta_L2 - value of phaseshift delta(L2)
+
+// TODO: class (?) for boundary and splines and just give a reference to these before
 complex Omnes_function(gsl_spline *delta, complex s, double s0, double L2, double delta_L2) {
     int M = 1500;
     complex temp;
