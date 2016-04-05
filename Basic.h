@@ -25,6 +25,8 @@
 #define TWO_ACOTH_SQRT2 1.762747174039086 //2*acoth(sqrt(2))
 #define SQRT2 1.414213562373095 //sqrt(2)
 
+#define s_pipi 4. //(2MPION)^2 in MPION^2 (2pi threshold)
+
 //MKAON^2 in MPION^2
 const double MKAON_SQUARED;
 

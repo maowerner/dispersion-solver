@@ -1,4 +1,5 @@
 #include "Basic.h"
+#include "PhaseShifts.h"
 #include "Grid.h"
 #include "Omnes.h"
 #include "AngularAverages.h"
@@ -8,6 +9,11 @@
 //#include "Iteration.h"
 #include "InputOutput.h"
 
+
+double test_func(double s) {
+    return delta0(s)+delta_etapi(s);
+}
+
 int main (int argn, char **argc){
     int i,j,N[10],n,N_sin,n0,n1,n2,n0_sub,n1_sub,n2_sub;
     int N_M_int[4],N_M_avg[4],N_M_hat[2];
@@ -15,7 +21,7 @@ int main (int argn, char **argc){
     double *s_cv_plus,*s_cv_minus,*s_below_cut,*phi; //interpolation grid
     complex *s_complex,s_cmp,O_cmp; //interpolation grid
     complex F0[4],G0[4],F1[5],G1[5],F2[4],G2[4],z,Q12,Q32,R12,R32,temp0,temp1,temp2;
-    char sub_const[2],phase_type[100],filename[1000];
+    char sub_const[2],**file_phases,filename[1000];
     FILE *fin,*fout;
     
     gsl_set_error_handler_off();
@@ -24,9 +30,14 @@ int main (int argn, char **argc){
     
     printf("Mass of decaying meson: %.3f MeV\n\n",METAP);
     
+    file_phases = (char**)malloc(4*sizeof(char*));
+    for (i=0; i<4; i++) {
+        file_phases[i] = (char*)malloc(100*sizeof(char));
+    }
+    
     //reading input file
     printf("Reading input file...\n");
-    Input(argc[1],&s_step,sub_const,&n0_sub,&n1_sub,&n2_sub,phase_type);
+    input(argc[1],&s_step,sub_const,&n0_sub,&n1_sub,&n2_sub,file_phases);
     //printf("%.3f %s %d %d %d\n",s_step,sub_const,n0_sub,n1_sub,n2_sub);
     //printf("%s\n",filename);
     printf("Done.\n\n");
@@ -35,15 +46,25 @@ int main (int argn, char **argc){
     //printf("%d %d %d\n",n0,n1,n2);
     printf("Dertermine the system for subtraction constant '%s'\n\n",sub_const);
     
-    gsl_spline *delta0;
-    gsl_spline *delta1;
-    gsl_spline *delta2;
-    
-    //import phases
+    //import scattering phase shifts
     printf("Import scattering phase shifts...\n");
-    sprintf(filename,"Input/Phases/%s_phases",phase_type);
-    Phases(filename,&delta0,&delta1,&delta2,&s0,&L2);
+    sprintf(filename,"Input/Phases/%s",file_phases[0]);
+    phase_input(filename,&delta0_spline,&L2_delta0,&delta0_const);
+    sprintf(filename,"Input/Phases/%s",file_phases[1]);
+    phase_input(filename,&delta1_spline,&L2_delta1,&delta1_const);
+    sprintf(filename,"Input/Phases/%s",file_phases[2]);
+    phase_input(filename,&delta2_spline,&L2_delta2,&delta2_const);
+    sprintf(filename,"Input/Phases/%s",file_phases[3]);
+    phase_input(filename,&delta_etapi_spline,&L2_delta_etapi,&delta_etapi_const);
     printf("Done.\n\n");
+    
+    //allocate gsl spline accelerators for the phase shifts
+    acc_delta0 = gsl_interp_accel_alloc();
+    acc_delta1 = gsl_interp_accel_alloc();
+    acc_delta2 = gsl_interp_accel_alloc();
+    acc_delta_etapi = gsl_interp_accel_alloc();
+    
+    //exit(0);
     
     printf("s_th = %.6f MPION**2\n",s0);
     printf("L2 = %.6f MPION**2\n\n",L2);
@@ -56,7 +77,8 @@ int main (int argn, char **argc){
     //    printf("%.10e %.10e %.10e\n",s_cmp.re,O_cmp.re,O_cmp.im);
     //}
     //exit(0);
-    //L2 = 150.;
+    s0 = s_pipi;
+    L2 = 1000.;
     
     s_max = L2;
     s_min = integration_s_plus(s_max);
@@ -171,7 +193,7 @@ int main (int argn, char **argc){
     double *abs_omnes1 = (double *)malloc(N_M_int[0]*sizeof(double));
     double *abs_omnes2 = (double *)malloc(N_M_int[0]*sizeof(double));
     
-    phase_shifts(delta0,delta1,delta2,sin_delta0,sin_delta1,sin_delta2,s_cv_plus,N_M_int[0]);
+    phase_shifts(delta0_spline,delta1_spline,delta2_spline,sin_delta0,sin_delta1,sin_delta2,s_cv_plus,N_M_int[0]);
     
     complex **omnes0 = (complex **)malloc(4*sizeof(complex *));
     for (i=0; i<4; i++) {
@@ -238,9 +260,14 @@ int main (int argn, char **argc){
     complex_spline_alloc(M2,4,N_M_int);
     
     printf("Computing Omnes functions...\n");
-    build_omnes(omnes0,abs_omnes0,delta0,s0,L2,2.*M_PI,s_cv_plus,s_cv_minus,s_below_cut,s_complex,N_M_int);
-    build_omnes(omnes1,abs_omnes1,delta1,s0,L2,M_PI,s_cv_plus,s_cv_minus,s_below_cut,s_complex,N_M_int);
-    build_omnes(omnes2,abs_omnes2,delta2,s0,L2,0.,s_cv_plus,s_cv_minus,s_below_cut,s_complex,N_M_int);
+    printf("Isospin 0...\n");
+    build_omnes(omnes0,abs_omnes0,delta0,s_pipi,L2,delta0_const,s_cv_plus,s_cv_minus,s_below_cut,s_complex,N_M_int);
+    printf("Done.\n");
+    printf("Isospin 1...\n");
+    build_omnes(omnes1,abs_omnes1,delta1,s_pipi,L2,delta1_const,s_cv_plus,s_cv_minus,s_below_cut,s_complex,N_M_int);
+    printf("Done.\n");
+    printf("Isospin 2...\n");
+    build_omnes(omnes2,abs_omnes2,delta2,s_pipi,L2,delta2_const,s_cv_plus,s_cv_minus,s_below_cut,s_complex,N_M_int);
     printf("Done.\n\n");
     
     printf("Setting initial inhomogeneities to zero...\n");
@@ -250,9 +277,9 @@ int main (int argn, char **argc){
     printf("Done.\n\n");
     
     printf("Computing Amplitudes...\n");
-    build_amplitude(M0,omnes0,M0_inhom,s_cv_plus,s_cv_minus,s_below_cut,s_complex,phi,s0,L2,s_min,N_M_int,n0);
-    build_amplitude(M1,omnes1,M1_inhom,s_cv_plus,s_cv_minus,s_below_cut,s_complex,phi,s0,L2,s_min,N_M_int,n1);
-    build_amplitude(M2,omnes2,M2_inhom,s_cv_plus,s_cv_minus,s_below_cut,s_complex,phi,s0,L2,s_min,N_M_int,n2);
+    build_amplitude(M0,omnes0,M0_inhom,s_cv_plus,s_cv_minus,s_below_cut,s_complex,phi,s_pipi,L2,s_min,N_M_int,n0);
+    build_amplitude(M1,omnes1,M1_inhom,s_cv_plus,s_cv_minus,s_below_cut,s_complex,phi,s_pipi,L2,s_min,N_M_int,n1);
+    build_amplitude(M2,omnes2,M2_inhom,s_cv_plus,s_cv_minus,s_below_cut,s_complex,phi,s_pipi,L2,s_min,N_M_int,n2);
     printf("Done.\n\n");
     
     printf("Computing angular averages...\n");
@@ -435,9 +462,15 @@ int main (int argn, char **argc){
     free(M1);
     free(M2);
     
-    gsl_spline_free(delta0);
-    gsl_spline_free(delta1);
-    gsl_spline_free(delta2);
+    gsl_spline_free(delta0_spline);
+    gsl_spline_free(delta1_spline);
+    gsl_spline_free(delta2_spline);
+    gsl_spline_free(delta_etapi_spline);
+    
+    gsl_interp_accel_free(acc_delta0);
+    gsl_interp_accel_free(acc_delta1);
+    gsl_interp_accel_free(acc_delta2);
+    gsl_interp_accel_free(acc_delta_etapi);
     
     t = (clock()-t)/CLOCKS_PER_SEC;
     

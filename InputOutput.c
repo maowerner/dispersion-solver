@@ -3,7 +3,8 @@
 #include "InputOutput.h"
 
 //reading input file
-void Input(char *filename, double *s_step, char *sub_const, int *n0_sub, int *n1_sub, int *n2_sub, char *file_phases) {
+void input(char *filename, double *s_step, char *sub_const, int *n0_sub, int *n1_sub, int *n2_sub, char **file_phases) {
+    int i;
     FILE *fin;
     
     if ((fin=fopen(filename,"r"))==NULL) {
@@ -12,14 +13,17 @@ void Input(char *filename, double *s_step, char *sub_const, int *n0_sub, int *n1
         exit(1);
     }
     fscanf(fin,"%lf %s %d %d %d",s_step,sub_const,n0_sub,n1_sub,n2_sub);
-    fscanf(fin,"%s",file_phases);
+    for (i=0; i<4; i++) {
+        fscanf(fin,"%s",file_phases[i]);
+    }
     
     fclose(fin);
 }
 
-void Phases(char *filename, gsl_spline **delta0, gsl_spline **delta1, gsl_spline **delta2, double *s0, double *L2) {
+//read in phase shift input from txt
+void phase_input(char *filename, gsl_spline **delta_spline, double *L2_delta, double *delta_const) {
     int i,N,n;
-    double *s, *d0, *d1, *d2;
+    double *s, *phase;
     FILE *fin;
     
     if ((fin=fopen(filename,"r"))==NULL) {
@@ -34,25 +38,17 @@ void Phases(char *filename, gsl_spline **delta0, gsl_spline **delta1, gsl_spline
         printf("FATAL ERROR: In memory allocation 's'.\n");
         exit(1);
     }
-    if ((d0 = (double *)malloc(N*sizeof(double)))==NULL) {
-        printf("FATAL ERROR: In memory allocation 'd0'.\n");
-        exit(1);
-    }
-    if ((d1 = (double *)malloc(N*sizeof(double)))==NULL) {
-        printf("FATAL ERROR: In memory allocation 'd1'.\n");
-        exit(1);
-    }
-    if ((d2 = (double *)malloc(N*sizeof(double)))==NULL) {
-        printf("FATAL ERROR: In memory allocation 'd2'.\n");
+    if ((phase = (double *)malloc(N*sizeof(double)))==NULL) {
+        printf("FATAL ERROR: In memory allocation 'phase'.\n");
         exit(1);
     }
     
     
     for (i=0; i<N; i++) {
-        fscanf(fin,"%lf %lf %lf %lf",&s[i],&d0[i],&d1[i],&d2[i]);
+        fscanf(fin,"%lf %lf",&s[i],&phase[i]);
         if (i>0) {
             if (s[i-1]>=s[i]) {
-                printf("FATAL ERROR: while reading phase input s[i-1]>=s[i] at i=%d!\n\n",i);
+                printf("FATAL ERROR: while reading phase input of file '%s' s[i-1]>=s[i] at i=%d!\n\n",filename,i);
                 exit(1);
             }
         }
@@ -60,21 +56,15 @@ void Phases(char *filename, gsl_spline **delta0, gsl_spline **delta1, gsl_spline
     
     fclose(fin);
     
-    *s0 = s[0];
-    *L2 = s[N-1];
+    *L2_delta = s[N-1];
+    *delta_const = phase[N-1];
     
-    *delta0 = gsl_spline_alloc(gsl_interp_cspline,N);
-    *delta1 = gsl_spline_alloc(gsl_interp_cspline,N);
-    *delta2 = gsl_spline_alloc(gsl_interp_cspline,N);
+    *delta_spline = gsl_spline_alloc(gsl_interp_cspline,N);
     
-    gsl_spline_init(*delta0,s,d0,N);
-    gsl_spline_init(*delta1,s,d1,N);
-    gsl_spline_init(*delta2,s,d2,N);
+    gsl_spline_init(*delta_spline,s,phase,N);
     
     free(s);
-    free(d0);
-    free(d1);
-    free(d2);
+    free(phase);
 }
 
 void M_tilde_input(char *filename, complex *M0_tilde, complex *M1_tilde, complex *M2_tilde, double *s, int *N_low, int *N_high, double eps_b) {
