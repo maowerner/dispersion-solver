@@ -1,0 +1,9 @@
+# redundant python files
+*.pyc
+# plots
+*.pdf
+# data files
+*.txt
+*.dat
+*.npy
+
