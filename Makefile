@@ -98,7 +98,7 @@ mkdep:  $(addsuffix .d,$(PGMS))
 # clean directory
 
 clean:
-	@ -rm -rf *.d *.o *.alog *.clog *.slog #$(MAIN)
+	@ -rm -rf *.d *.o *.alog *.clog *.slog $(MAIN)
 .PHONY: clean
 
 ################################################################################

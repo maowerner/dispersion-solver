@@ -9,9 +9,6 @@
 //#include "Iteration.h"
 #include "InputOutput.h"
 
-#include <gsl/gsl_math.h>
-
-
 double test_func(double s) {
     return delta0(s)+delta_etapi(s);
 }
