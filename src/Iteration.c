@@ -1,15 +1,12 @@
-#include "Basic.h"
-#include "Omnes.h"
+#include "Iteration.h"
+#include "Amplitude.h"
 #include "AngularAverages.h"
+#include "Basic.h"
 #include "InhomogenitySqrt.h"
 #include "InhomogenitySqrtCubed.h"
-#include "Amplitude.h"
-#include "Iteration.h"
+#include "Omnes.h"
 
 void Iteration() {
-    int i;
-    FILE *fout;
-    
-    
+  int i;
+  FILE *fout;
 }
-
