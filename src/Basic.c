@@ -24,6 +24,17 @@ const double s_etapi = (META/MPION+1.)*(META/MPION+1.);
 //(META-MPION)^2 in MPION^2
 const double s_etapi_pseudo = (META/MPION-1.)*(META/MPION-1.);
 
+//real part of complex variable
+double cmp_re(complex cmp) {
+    return cmp.re;
+}
+
+//imaginary part of complex variable
+double cmp_im(complex cmp) {
+    return cmp.im;
+}
+
+
 //Phase space for etapi-disc
 double lambda_etapi(double s) {
     if (s<=s_etapi) {
@@ -293,6 +304,230 @@ double integration_III_circumference() {
     return result;
 }
 
+//New integration path III
+//calc new integration variable ya or yb from s with given a=(M-m)**2 and b=(M+m)**2 in range s in [a,b]
+double s_to_y(double s, double a, double b) {
+    double a_b_avg = 0.5*(a+b);
+    
+    if (s>=a && s<=a_b_avg) {
+        return sqrt(0.5*(sqrt(s)+sqrt(a)))-sqrt(0.5*(sqrt(s)-sqrt(a)));
+    }
+    else if (s>a_b_avg && s<=b) {
+        return sqrt(0.5*(sqrt(b)+sqrt(s)))-sqrt(0.5*(sqrt(b)-sqrt(s)));
+    }
+    else {
+        printf("FATAL ERROR: In function s_to_y, s=%.3e not in range [%.3e,%.3e]!",s,a,b);
+        exit(1);
+    }
+}
+
+//calc s from ya or yb with given a=(M-m)**2 and b=(M+m)**2 in range s in [a,b]
+double y_to_s(double y, double a, double b, char region) {
+    double s,y2,y4;
+    
+    switch (region) {
+        case 'a':
+            y4 = y*y*y*y;
+            s = pow(y4+a,2.)/(4.*y4);
+            break;
+            
+        case 'b':
+            y2 = y*y;
+            s = y2*(2.*sqrt(b)-y2);
+            break;
+            
+        default:
+            printf("FATAL ERROR: In function y_to_s, unknown region '%c'!",region);
+            exit(1);
+            break;
+    }
+    
+    return s;
+}
+
+//integration path gamma for s>=d==s_th
+complex gamma_path(double s, double a, double b, double c, double d, char plusminus, char kappa_pm) {
+    complex gamma,kappa;
+    
+    switch (plusminus) {
+        case '+':
+            gamma.re = 0.5*(0.5*(a+b+c+d)-s+sqrt(a*b*c*d)/s);
+            break;
+            
+        case '0':
+            gamma.re = 0.5*(0.5*(a+b+c+d)-s);
+            break;
+            
+        case '-':
+            gamma.re = 0.5*(0.5*(a+b+c+d)-s-sqrt(a*b*c*d)/s);
+            break;
+            
+        default:
+            printf("FATAL ERROR: In function gamma_path, plusminus has to be '+' or '0' or '-', '%c' is unknown!",plusminus);
+            exit(1);
+            break;
+    }
+    
+    if (s==d || s==a || s==b) {
+        kappa.re = 0.;
+        kappa.im = 0.;
+    }
+    
+    else if (s>d && s<a) {
+        kappa.re = 0.5*(sqrt((s-c)*(s-d))*sqrt((s-a)*(s-b)))/s;
+        kappa.im = 0.;
+    }
+    
+    else if (s>a && s<b) {
+        kappa.re = 0.;
+        kappa.im = 0.5*(sqrt((s-c)*(s-d))*sqrt((s-a)*(b-s)))/s;
+    }
+    
+    else if (s>b) {
+        kappa.re = -0.5*(sqrt((s-c)*(s-d))*sqrt((s-a)*(s-b)))/s;
+        kappa.im = 0.;
+    }
+    
+    else {
+        printf("FATAL ERROR: In function gamma_path, value of s is not covered by definition range!\n");
+        exit(1);
+    }
+    
+    gamma.im = 0.;
+    
+    switch (kappa_pm) {
+        case '+':
+            gamma.re += kappa.re;
+            gamma.im += kappa.im;
+            break;
+            
+        case '-':
+            gamma.re -= kappa.re;
+            gamma.im -= kappa.im;
+            break;
+            
+        default:
+            printf("FATAL ERROR: In function gamma_path, kappa_pm has to be '+' or '-', '%c' is unknown!",kappa_pm);
+            exit(1);
+            break;
+    }
+    
+    return gamma;
+}
+
+//integration path gamma in terms of intrgarion variable y, a=(m1-m2)**2, b=(m1+m2)**2, c=(m3-m4)**2, d=(m3+m4)**2
+//m1,...,m4 particle masses
+complex gamma_III(double y, double a, double b, double c, double d, char region, char plusminus, char kappa_pm) {
+    complex gamma;
+    double s;
+    
+    s = y_to_s(y,a,b,region);
+    
+//    switch (plusminus) {
+//        case '+':
+//            gamma.re = 0.5*(0.5*(a+b+c+d)-s+sqrt(a*b*c*d)/s);
+//            break;
+//            
+//        case '0':
+//            gamma.re = 0.5*(0.5*(a+b+c+d)-s);
+//            break;
+//            
+//        case '-':
+//            gamma.re = 0.5*(0.5*(a+b+c+d)-s-sqrt(a*b*c*d)/s);
+//            break;
+//            
+//        default:
+//            printf("FATAL ERROR: In function gamma_III, plusminus has to be '+' or '0' or '-', '%c' is unknown!",plusminus);
+//            exit(1);
+//            break;
+//    }
+//    
+//    gamma.im = 0.5*(sqrt((s-c)*(s-d))*sqrt((a-s)*(s-b)))/s;
+    
+    return gamma_path(s,a,b,c,d,plusminus,kappa_pm);
+}
+
+//derivative of the integration path gamma in terms of intrgarion variable y, a=(m1-m2)**2, b=(m1+m2)**2, c=(m3-m4)**2, d=(m3+m4)**2
+//m1,...,m4 particle masses
+complex dgamma_III(double y, double a, double b, double c, double d, char region, char plusminus, char kappa_pm) {
+    complex dgamma;
+    double s,dsdy;
+    
+    s = y_to_s(y,a,b,region);
+    
+    switch (plusminus) {
+        case '+':
+            dgamma.re = -0.5*(1.+sqrt(a*b*c*d)/(s*s));
+            break;
+            
+        case '0':
+            dgamma.re = -0.5;
+            break;
+            
+        case '-':
+            dgamma.re = -0.5*(1.-sqrt(a*b*c*d)/(s*s));
+            break;
+            
+        default:
+            printf("FATAL ERROR: In function dgamma_III, plusminus has to be '+' or '0' or '-', '%c' is unknown!",plusminus);
+            exit(1);
+            break;
+    }
+    
+    dgamma.im = (2.*a*b*c*d-(b*c*(a+d)+a*d*(b+c))*s+(a+b+c+d)*s*s*s-2.*s*s*s*s)/(4.*s*s*sqrt((s-a)*(b-s))*sqrt((s-c)*(s-d)));
+    
+    switch (region) {
+        case 'a':
+            dsdy = y*y*y-a*a/pow(y,5.);
+            
+            if (y>=pow(a,1./4.)-1.e-3) {
+                dgamma.im = -sqrt(sqrt(a)*(b-a))*sqrt((a-c)*(a-d))/a;
+            }
+            else {
+                dgamma.im *= dsdy;
+            }
+            
+            break;
+            
+        case 'b':
+            dsdy = 4.*y*(sqrt(b)-y*y);
+            
+            if (y>=pow(b,1./4.)-1.e-3) {
+                dgamma.im = -sqrt(sqrt(b)*(b-a))*sqrt((b-c)*(b-d))/b;
+            }
+            else {
+                dgamma.im *= dsdy;
+            }
+            
+            break;
+            
+        default:
+            printf("FATAL ERROR: In function dgamma_III, unknown region '%c'!",region);
+            exit(1);
+            break;
+    }
+    
+    switch (kappa_pm) {
+        case '+':
+            break;
+            
+        case '-':
+            dgamma.im *= -1.;
+            break;
+            
+        default:
+            printf("FATAL ERROR: In function dgamma_III, kappa_pm has to be '+' or '-', '%c' is unknown!",kappa_pm);
+            exit(1);
+            break;
+    }
+    
+    dgamma.re *= dsdy;
+    
+    return dgamma;
+}
+
+
+
 void complex_spline_alloc(complex_spline *A, int N, int *N_spline) {
     int i;
     for (i=0; i<N; i++) {
@@ -309,121 +544,6 @@ void complex_spline_free(complex_spline *A, int N) {
     }
 }
 
-//void build_s_cv_plus(double *s, double s_init, double s_final, double eps, double eps_b, int *N, int N_sin) {
-//    int i,n;
-//    double si,sf,ds,m;
-//    
-//    si = s_init;
-//    sf = 0.5*(METAP_SQUARED-1.0);
-////    ds = (sf-si)/(double)(N[0]-1);
-////    s[0] = si+eps;
-////    s[N[0]-1] = sf-eps;
-////    for (i=1; i<N[0]-1; i++) {
-////        s[i] = si+ds*(double)i;
-////    }
-//    ds = (sf-si)/(double)(N[0]-N_sin-1);
-//    s[0] = si+eps;
-//    s[N[0]-1] = sf-eps;
-//    m = (double)N_sin+1;
-//    for (i=1; i<N_sin+1; i++) {
-//        s[i] = s[i-1]+ds*pow(0.5,m);
-//        m--;
-//    }
-//    for (i=1; i<N[0]-N_sin-1; i++) {
-//        s[N_sin+i] = si+ds*(double)i;
-//    }
-//    
-//    n = N[0];
-//    si = 0.5*(METAP_SQUARED-1.0);
-//    sf = METAP_M_MPION_SQUARED;
-//    ds = (sf-si)/(double)(N[1]-N_sin-1);
-//    s[n] = si+eps;
-//    s[n+N[1]-1] = sf-eps;
-//    for (i=1; i<N[1]-N_sin-1; i++) {
-//        s[i+n] = si+ds*(double)i;
-//    }
-//    m = 1.0;
-//    for (i=N[1]-N_sin-1; i<N[1]-1; i++) {
-//        s[i+n] = s[n+i-1]+ds*pow(0.5,m);
-//        m++;
-//    }
-//    
-//    n += N[1];
-//    si = METAP_M_MPION_SQUARED;
-//    sf = METAP_P_MPION_SQUARED-eps_b;
-//    ds = (sf-si)/(double)(N[2]-N_sin-1);
-//    s[n] = si+eps;
-//    s[n+N[2]-1] = sf-eps;
-//    m = (double)N_sin+1;
-//    for (i=1; i<N_sin+1; i++) {
-//        s[i+n] = s[n+i-1]+ds*pow(0.5,m);
-//        m--;
-//    }
-//    for (i=1; i<N[2]-N_sin-1; i++) {
-//        s[N_sin+n+i] = si+ds*(double)i;
-//    }
-//    
-//    n += N[2];
-//    si = METAP_P_MPION_SQUARED+eps_b;
-//    sf = s_final;
-//    ds = (sf-si)/(double)(N[3]-1);
-//    s[n] = si+eps;
-//    s[n+N[3]-1] = sf-eps;
-//    for (i=1; i<N[3]-1; i++) {
-//        s[i+n] = si+ds*(double)i;
-//    }
-//}
-//
-//void build_s_cv_minus(double *s, double s_init, double s_final, double eps, int N) {
-//    int i;
-//    double ds;
-//    
-//    ds = (s_final-s_init)/(double)(N-1);
-//    
-//    for (i=0; i<N; i++) {
-//        s[i] = s_init+ds*(double)i;
-//    }
-//    s[0] += eps;
-//}
-//
-//void build_s_below_cut(double *s, double si, double sf, double eps, int N, int N_sin) {
-//    int i;
-//    double ds,m;
-//    
-////    ds = (s_final-s_init)/(double)(N-1);
-////    
-////    for (i=0; i<N; i++) {
-////        s[i] = s_init+ds*(double)i;
-////    }
-////    s[N-1] -= eps;
-//    
-//    ds = (sf-si)/(double)(N-N_sin-1);
-//    s[0] = si+eps;
-//    s[N-1] = sf-eps;
-//    for (i=1; i<N-N_sin-1; i++) {
-//        s[i] = si+ds*(double)i;
-//    }
-//    m = 1.0;
-//    for (i=N-N_sin-1; i<N-1; i++) {
-//        s[i] = s[i-1]+ds*pow(0.5,m);
-//        m++;
-//    }
-//}
-//
-//void build_s_complex(complex *s, double *phi, double eps, int N) {
-//    int i;
-//    double dphi;
-//    
-//    dphi = 2.0*M_PI/(double)(N-1);
-//    
-//    for (i=0; i<N; i++) {
-//        phi[i] = dphi*(double)i;
-//        s[i] = integration_III_gamma_phi(phi[i]);
-//    }
-//    s[0].im += eps;
-//    s[N-1].im -= eps;
-//}
-
 void cubic_spline_f01_df01(double x0, double x1, double f0, double f1, double df0, double df1, double *c) {
     c[0] = -2.0*((f0-f1)+0.5*(df0-df1)*(x0-x1)-df0*(x0-x1))/((x0*x0*x0-x1*x1*x1)-3.0*x0*x1*(x0-x1));
     c[1] = 0.5*(df0-df1)/(x0-x1)-1.5*c[0]*(x0+x1);
@@ -431,91 +551,91 @@ void cubic_spline_f01_df01(double x0, double x1, double f0, double f1, double df
     c[3] = f0-c[0]*x0*x0*x0-c[1]*x0*x0-c[2]*x0;
 }
 
-complex R_sqrt(double s, double s0, double L2) {
+complex R_sqrt(double s, double s0, double a, double L2) {
     double s_m_a;
     complex result;
     
-    if (s<METAP_M_MPION_SQUARED) {
-        s_m_a = sqrt(METAP_M_MPION_SQUARED-s);
-        result.re = (2.0*atanh(s_m_a/sqrt(METAP_M_MPION_SQUARED-s0))-TWO_ACOTH_SQRT2)/s_m_a;
+    if (s<a) {
+        s_m_a = sqrt(a-s);
+        result.re = (2.0*atanh(s_m_a/sqrt(a-s0))-TWO_ACOTH_SQRT2)/s_m_a;
         result.im = M_PI/s_m_a;
     }
     else {
-        s_m_a = sqrt(s-METAP_M_MPION_SQUARED);
-        result.re = (TWO_ACOTH_SQRT2-2.0*atanh(s_m_a/sqrt(L2-METAP_M_MPION_SQUARED)))/s_m_a;
+        s_m_a = sqrt(s-a);
+        result.re = (TWO_ACOTH_SQRT2-2.0*atanh(s_m_a/sqrt(L2-a)))/s_m_a;
         result.im = M_PI/s_m_a;
     }
     
     return result;
 }
 
-complex R_sqrt_cubed(double s, double s0, double L2, complex R12) {
+complex R_sqrt_cubed(double s, double s0, double a, double L2, complex R12) {
     double s_m_a;
     complex result;
     
-    if (s<METAP_M_MPION_SQUARED) {
-        s_m_a = METAP_M_MPION_SQUARED-s;
-        result.re = (2.0*(SQRT2/sqrt(s_m_a)-1.0/sqrt(METAP_M_MPION_SQUARED-s0))+R12.re)/s_m_a;
+    if (s<a) {
+        s_m_a = a-s;
+        result.re = (2.0*(SQRT2/sqrt(s_m_a)-1.0/sqrt(a-s0))+R12.re)/s_m_a;
         result.im = R12.im/s_m_a;
         
     }
     
     else {
-        s_m_a = s-METAP_M_MPION_SQUARED;
-        result.re = (2.0*(1.0/sqrt(L2-METAP_M_MPION_SQUARED)-SQRT2/sqrt(s_m_a))+R12.re)/s_m_a;
+        s_m_a = s-a;
+        result.re = (2.0*(1.0/sqrt(L2-a)-SQRT2/sqrt(s_m_a))+R12.re)/s_m_a;
         result.im = R12.im/s_m_a;
     }
     
     return result;
 }
 
-complex Q_sqrt(double s, double s0, double L2) {
+complex Q_sqrt(double s, double s0, double a, double L2) {
     double s_m_a;
     complex result;
     
-    if (s<METAP_M_MPION_SQUARED) {
-        s_m_a = sqrt(METAP_M_MPION_SQUARED-s);
+    if (s<a) {
+        s_m_a = sqrt(a-s);
         
         if (s<s0) {
-            result.re = 2.0*atanh(sqrt(METAP_M_MPION_SQUARED-s0)/s_m_a)/s_m_a;
+            result.re = 2.0*atanh(sqrt(a-s0)/s_m_a)/s_m_a;
         }
         else {
             result.re = TWO_ACOTH_SQRT2/s_m_a;
         }
         
-        result.im = 2.0*atan(sqrt(L2-METAP_M_MPION_SQUARED)/s_m_a)/s_m_a;//-
+        result.im = 2.0*atan(sqrt(L2-a)/s_m_a)/s_m_a;//-
     }
     
     else {
-        s_m_a = sqrt(s-METAP_M_MPION_SQUARED);
+        s_m_a = sqrt(s-a);
         result.re = -TWO_ACOTH_SQRT2/s_m_a;
-        result.im = -2.0*atan(sqrt(METAP_M_MPION_SQUARED-s0)/s_m_a)/s_m_a;
+        result.im = -2.0*atan(sqrt(a-s0)/s_m_a)/s_m_a;
     }
     
     return result;
 }
 
-complex Q_sqrt_cubed(double s, double s0, double L2, complex Q12) {
+complex Q_sqrt_cubed(double s, double s0, double a, double L2, complex Q12) {
     double s_m_a;
     complex result;
     
-    if (s<METAP_M_MPION_SQUARED) {
-        s_m_a = METAP_M_MPION_SQUARED-s;
+    if (s<a) {
+        s_m_a = a-s;
         
         if (s<s0) {
-            result.re = (-2.0/sqrt(METAP_M_MPION_SQUARED-s0)+Q12.re)/s_m_a;
+            result.re = (-2.0/sqrt(a-s0)+Q12.re)/s_m_a;
         }
         else {
             result.re = (-2.0*SQRT2/sqrt(s_m_a)+Q12.re)/s_m_a;
         }
         
-        result.im = -(2.0/sqrt(L2-METAP_M_MPION_SQUARED)+Q12.im)/s_m_a;//(-2.0 and +Q12
+        result.im = -(2.0/sqrt(L2-a)+Q12.im)/s_m_a;//(-2.0 and +Q12
     }
     
     else {
-        s_m_a = s-METAP_M_MPION_SQUARED;
+        s_m_a = s-a;
         result.re = (2.0*SQRT2/sqrt(s_m_a)+Q12.re)/s_m_a;
-        result.im = (2.0/sqrt(METAP_M_MPION_SQUARED-s0)-Q12.im)/s_m_a;//+(-2.0 and +Q12
+        result.im = (2.0/sqrt(a-s0)-Q12.im)/s_m_a;//+(-2.0 and +Q12
     }
     
     return result;
@@ -555,18 +675,18 @@ complex Q_sqrt_cubed(double s, double s0, double L2, complex Q12) {
 //    return result;
 //}
 
-complex Q_sqrt_complex_f(complex s, double s0) {
+complex Q_sqrt_complex_f(complex s, double s0, double a) {
     double temp;
     complex x,sqrt_c,result;
     
-    x.re = METAP_M_MPION_SQUARED-s.re;
+    x.re = a-s.re;
     x.im = -s.im;
     
     x = c_sqrt(x);
     
     sqrt_c = c_inverse(x);
     
-    temp = sqrt(METAP_M_MPION_SQUARED-s0);
+    temp = sqrt(a-s0);
     
     x.re = sqrt_c.re*temp;
     x.im = sqrt_c.im*temp;
@@ -579,18 +699,18 @@ complex Q_sqrt_complex_f(complex s, double s0) {
     return result;
 }
 
-complex Q_sqrt_complex_g(complex s, double L2) {
+complex Q_sqrt_complex_g(complex s, double a, double L2) {
     double temp;
     complex x,y,sqrt_c,result;
     
-    x.re = METAP_M_MPION_SQUARED-s.re;
+    x.re = a-s.re;
     x.im = -s.im;
     
     x = c_sqrt(x);
     
     sqrt_c = c_inverse(x);
     
-    temp = sqrt(L2-METAP_M_MPION_SQUARED);
+    temp = sqrt(L2-a);
     
     x.re = sqrt_c.re*temp;
     x.im = sqrt_c.im*temp;
@@ -606,16 +726,16 @@ complex Q_sqrt_complex_g(complex s, double L2) {
     return result;
 }
 
-complex Q_sqrt_cubed_complex(complex s, double s0, double L2, complex Q12) {
+complex Q_sqrt_cubed_complex(complex s, double s0, double a, double L2, complex Q12) {
     complex x,y,result;
     
-    x.re = METAP_M_MPION_SQUARED-s.re;
+    x.re = a-s.re;
     x.im = -s.im;
     
     x = c_inverse(x);
     
-    y.re = -2.0/sqrt(METAP_M_MPION_SQUARED-s0)+Q12.re;
-    y.im = -2.0/sqrt(L2-METAP_M_MPION_SQUARED)+Q12.im;
+    y.re = -2.0/sqrt(a-s0)+Q12.re;
+    y.im = -2.0/sqrt(L2-a)+Q12.im;
     
     result.re = x.re*y.re-x.im*y.im;
     result.im = x.re*y.im+x.im*y.re;
@@ -623,15 +743,15 @@ complex Q_sqrt_cubed_complex(complex s, double s0, double L2, complex Q12) {
     return result;
 }
 
-complex Q_sqrt_cubed_complex_f(complex s, double s0, complex Q12_f) {
+complex Q_sqrt_cubed_complex_f(complex s, double s0, double a, complex Q12_f) {
     complex x,y,result;
     
-    x.re = METAP_M_MPION_SQUARED-s.re;
+    x.re = a-s.re;
     x.im = -s.im;
     
     x = c_inverse(x);
     
-    y.re = -2.0/sqrt(METAP_M_MPION_SQUARED-s0)+Q12_f.re;
+    y.re = -2.0/sqrt(a-s0)+Q12_f.re;
     y.im = Q12_f.im;
     
     result.re = x.re*y.re-x.im*y.im;
@@ -640,15 +760,15 @@ complex Q_sqrt_cubed_complex_f(complex s, double s0, complex Q12_f) {
     return result;
 }
 
-complex Q_sqrt_cubed_complex_g(complex s, double L2, complex Q12_g) {
+complex Q_sqrt_cubed_complex_g(complex s, double a, double L2, complex Q12_g) {
     complex x,y,result;
     
-    x.re = METAP_M_MPION_SQUARED-s.re;
+    x.re = a-s.re;
     x.im = -s.im;
     
     x = c_inverse(x);
     
-    y.re = -2.0/sqrt(L2-METAP_M_MPION_SQUARED)-Q12_g.re;
+    y.re = -2.0/sqrt(L2-a)-Q12_g.re;
     y.im = -Q12_g.im;
     
     result.re = x.re*y.re-x.im*y.im;

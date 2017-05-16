@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <math.h>
 #include <string.h>
 #include <time.h>
@@ -11,6 +12,7 @@
 #include <gsl/gsl_spline.h>
 
 //Meson Masses in MeV
+#define MPION0 134.9766
 #define MPION 139.57018
 #define MKAON 497.614
 #define META 547.862
@@ -26,6 +28,35 @@
 #define SQRT2 1.414213562373095 //sqrt(2)
 
 #define s_pipi 4. //(2MPION)^2 in MPION^2 (2pi threshold)
+
+bool pi0pi0; //switch between pi0pi0 (true) and pi+pi- system (false)
+
+//defines a complex double
+typedef  struct {
+    double re, im;
+} complex;
+
+typedef  struct {
+    double r, phi;
+} complex_polar;
+
+//global variables
+
+int N_ITER; //number of iterations
+
+//Subtraction scheme
+int N_SUB_CONST; //length of subtraction constant array
+char **SUB_CONST; //array of subtraction constants
+
+//phases
+char file_delta0[1000],file_delta1[1000],file_delta2[1000],file_delta_etapi[1000]; //file names of phase input
+typedef  struct {
+    gsl_spline *spline;
+    gsl_interp_accel *acc;//gsl spline accelerator
+    double s_th;//scattering threshold
+    double L2,n,m,a,b;//asymptotic behaviour of delta(s) = n*pi-a/(b+(s/L2)^m)
+} delta_params;
+delta_params delta0_params,delta1_params,delta2_params,delta_etapi_params;
 
 //MKAON^2 in MPION^2
 const double MKAON_SQUARED;
@@ -51,6 +82,12 @@ const double s_etapi;
 //(META-MPION)^2 in MPION^2
 const double s_etapi_pseudo;
 
+//real part of complex variable
+double cmp_re(complex cmp);
+
+//imaginary part of complex variable
+double cmp_im(complex cmp);
+
 //Phase space for etapi-disc
 double lambda_etapi(double s);
 
@@ -59,15 +96,6 @@ int str_eq_str(char *str1, char *str2);
 
 //#define SIGMA_MPION( s) (sqrt(1.0-4.0/(s)))
 //#define Q2_MPION( s) ((s)/4.0-1.0)
-
-//defines a complex double
-typedef  struct {
-    double re, im;
-} complex;
-
-typedef  struct {
-    double r, phi;
-} complex_polar;
 
 typedef  struct {
     gsl_spline *re,*im;
@@ -142,6 +170,17 @@ void complex_spline_alloc(complex_spline *A, int N, int *N_spline);
 
 void complex_spline_free(complex_spline *A, int N);
 
+//New integration III
+double s_to_y(double s, double a, double b);
+
+double y_to_s(double y, double a, double b, char region);
+
+complex gamma_path(double s, double a, double b, double c, double d, char plusminus, char kappa_pm);
+
+complex gamma_III(double y, double a, double b, double c, double d, char region, char plusminus, char kappa_pm);
+
+complex dgamma_III(double y, double a, double b, double c, double d, char region, char plusminus, char kappa_pm);
+
 //void build_s_cv_plus(double *s, double s_init, double s_final, double eps, double eps_b, int *N, int N_sin);
 //
 //void build_s_cv_minus(double *s, double s_init, double s_final, double eps, int N);
@@ -152,24 +191,24 @@ void complex_spline_free(complex_spline *A, int N);
 
 void cubic_spline_f01_df01(double x0, double x1, double f0, double f1, double df0, double df1, double *c);
 
-complex R_sqrt(double s, double s0, double L2);
+complex R_sqrt(double s, double s0, double a, double L2);
 
-complex R_sqrt_cubed(double s, double s0, double L2, complex R12);
+complex R_sqrt_cubed(double s, double s0, double a, double L2, complex R12);
 
-complex Q_sqrt(double s, double s0, double L2);
+complex Q_sqrt(double s, double s0, double a, double L2);
 
-complex Q_sqrt_cubed(double s, double s0, double L2, complex Q12);
+complex Q_sqrt_cubed(double s, double s0, double a, double L2, complex Q12);
 
 //complex Q_sqrt_complex(complex s, double s0, double L2);
 
-complex Q_sqrt_complex_f(complex s, double s0);
+complex Q_sqrt_complex_f(complex s, double s0, double a);
 
-complex Q_sqrt_complex_g(complex s, double L2);
+complex Q_sqrt_complex_g(complex s, double a, double L2);
 
-complex Q_sqrt_cubed_complex(complex s, double s0, double L2, complex Q12);
+complex Q_sqrt_cubed_complex(complex s, double s0, double a, double L2, complex Q12);
 
-complex Q_sqrt_cubed_complex_f(complex s, double s0, complex Q12_f);
+complex Q_sqrt_cubed_complex_f(complex s, double s0, double a, complex Q12_f);
 
-complex Q_sqrt_cubed_complex_g(complex s, double L2, complex Q12_g);
+complex Q_sqrt_cubed_complex_g(complex s, double a, double L2, complex Q12_g);
 
 #endif

@@ -1,0 +1,7 @@
+ds L2 n_its c_or_n
+n0 n1 n2
+#a's {a0,...,}
+phase0 cutoff n m
+phase1 cutoff n m
+phase2 cutoff n m
+phase_pieta cutoff n m

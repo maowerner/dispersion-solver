@@ -2,9 +2,9 @@
 #define _INPUTOUTPUT_H_
 
 //reading input file
-void input(char *filename, double *s_step, char *sub_const, int *n0_sub, int *n1_sub, int *n2_sub, char **file_phases);
+void input(char *filename, double *s_step, double *L2, int *n0_sub, int *n1_sub, int *n2_sub);
 
-void phase_input(char *filename, gsl_spline **delta_spline, double *L2_delta, double *delta_const);
+void phase_input(char *filename, gsl_spline **delta_spline);
 
 void M_tilde_input(char *filename, complex *M0_tilde, complex *M1_tilde, complex *M2_tilde, double *s, int *N_low, int *N_high, double eps_b);
 

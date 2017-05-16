@@ -2,12 +2,10 @@
 #include "InhomogenitySqrtCubed.h"
 
 //
-void inhomogenity_sqrt_cubed_cv_plus(complex *M_inhom, complex_spline *M_hat, complex *f, complex *g, double *s, complex *R32, complex *Q12, complex *Q32, double s0, double L2, double cut, int N, int n) {
+void inhomogenity_sqrt_cubed_cv_plus(complex *M_inhom, complex_spline *M_hat, complex *f, complex *g, double *s, double s0, double a, double L2, double cut, int N, int n) {
     int i,N_int,Nm,Np;
-    double a,am,ap,p,eps,error,interpol_re[4],interpol_im[4],s3,s2,pts_cv[2][3],pts_a[2][3],log_const;
-    complex result,M,dM,M_const;
-    
-    a = METAP_M_MPION_SQUARED;
+    double am,ap,p,eps,error,interpol_re[4],interpol_im[4],s3,s2,pts_cv[2][3],pts_a[2][3],log_const;
+    complex result,M,dM,M_const,R12,R32,Q12,Q32;
     
     N_int = 1500;
     eps = 1.0e-14;
@@ -111,6 +109,11 @@ void inhomogenity_sqrt_cubed_cv_plus(complex *M_inhom, complex_spline *M_hat, co
         F_re_sing.params = &s[i];
         F_im_sing.params = &s[i];
         
+        R12 = R_sqrt(s[i],s0,a,L2);
+        R32 = R_sqrt_cubed(s[i],s0,a,L2,R12);
+        Q12 = Q_sqrt(s[i],s0,a,L2);
+        Q32 = Q_sqrt_cubed(s[i],s0,a,L2,Q12);
+        
         if (s[i]<a-cut) {
             Nm = i;
             
@@ -136,14 +139,14 @@ void inhomogenity_sqrt_cubed_cv_plus(complex *M_inhom, complex_spline *M_hat, co
             
             log_const = log(L2/(L2-s[i]))/s[i];
             
-            M_inhom[i].re += M.re*R32[i].re-M.im*R32[i].im+M_const.re*log_const;
-            M_inhom[i].im += M.im*R32[i].re+M.re*R32[i].im+M_const.im*log_const;
+            M_inhom[i].re += M.re*R32.re-M.im*R32.im+M_const.re*log_const;
+            M_inhom[i].im += M.im*R32.re+M.re*R32.im+M_const.im*log_const;
             
-            M_inhom[i].re += f[0].re*Q32[i].re+g[0].re*Q32[i].im;
-            M_inhom[i].re += f[1].re*Q12[i].re+g[1].re*Q12[i].im;
+            M_inhom[i].re += f[0].re*Q32.re+g[0].re*Q32.im;
+            M_inhom[i].re += f[1].re*Q12.re+g[1].re*Q12.im;
             
-            M_inhom[i].im += f[0].im*Q32[i].re+g[0].im*Q32[i].im;
-            M_inhom[i].im += f[1].im*Q12[i].re+g[1].im*Q12[i].im;
+            M_inhom[i].im += f[0].im*Q32.re+g[0].im*Q32.im;
+            M_inhom[i].im += f[1].im*Q12.re+g[1].im*Q12.im;
         }
         
         else if (s[i]>a+cut) {
@@ -169,14 +172,14 @@ void inhomogenity_sqrt_cubed_cv_plus(complex *M_inhom, complex_spline *M_hat, co
             
             log_const = log(L2/(L2-s[i]))/s[i];
             
-            M_inhom[i].re += M.re*R32[i].re-M.im*R32[i].im+M_const.re*log_const;
-            M_inhom[i].im += M.im*R32[i].re+M.re*R32[i].im+M_const.im*log_const;
+            M_inhom[i].re += M.re*R32.re-M.im*R32.im+M_const.re*log_const;
+            M_inhom[i].im += M.im*R32.re+M.re*R32.im+M_const.im*log_const;
             
-            M_inhom[i].re += g[0].re*Q32[i].re+f[0].re*Q32[i].im;
-            M_inhom[i].re += g[1].re*Q12[i].re+f[1].re*Q12[i].im;
+            M_inhom[i].re += g[0].re*Q32.re+f[0].re*Q32.im;
+            M_inhom[i].re += g[1].re*Q12.re+f[1].re*Q12.im;
             
-            M_inhom[i].im += g[0].im*Q32[i].re+f[0].im*Q32[i].im;
-            M_inhom[i].im += g[1].im*Q12[i].re+f[1].im*Q12[i].im;
+            M_inhom[i].im += g[0].im*Q32.re+f[0].im*Q32.im;
+            M_inhom[i].im += g[1].im*Q12.re+f[1].im*Q12.im;
         }
         
         else {
@@ -220,12 +223,10 @@ void inhomogenity_sqrt_cubed_cv_plus(complex *M_inhom, complex_spline *M_hat, co
     gsl_interp_accel_free(acc2);
 }
 
-void inhomogenity_sqrt_cubed_cv_minus(complex *M_inhom, complex_spline *M_hat, complex *f, complex *g, double *s, complex *R32, complex *Q12, complex *Q32, double s0, double L2, int N, int n) {
+void inhomogenity_sqrt_cubed_cv_minus(complex *M_inhom, complex_spline *M_hat, complex *f, complex *g, double *s, double s0, double a, double L2, int N, int n) {
     int i,N_int;
-    double a,am,ap,p,eps,error,pts_cv[3],pts_a[3],log_const;
-    complex result,M,M_const;
-    
-    a = METAP_M_MPION_SQUARED;
+    double am,ap,p,eps,error,pts_cv[3],pts_a[3],log_const;
+    complex result,M,M_const,R12,R32,Q12,Q32;
     
     N_int = 1500;
     eps = 1.0e-12;
@@ -348,14 +349,20 @@ void inhomogenity_sqrt_cubed_cv_minus(complex *M_inhom, complex_spline *M_hat, c
         M.re = gsl_spline_eval(M_hat[0].re,s[i],acc1);
         M.im = gsl_spline_eval(M_hat[0].im,s[i],acc1);
         
-        M_inhom[i].re += M.re*R32[i].re+M.im*R32[i].im;
-        M_inhom[i].im += M.im*R32[i].re-M.re*R32[i].im;
+        R12 = R_sqrt(s[i],s0,a,L2);
+        R32 = R_sqrt_cubed(s[i],s0,a,L2,R12);
         
-        M_inhom[i].re += f[0].re*Q32[i].re+g[0].re*Q32[i].im;
-        M_inhom[i].re += f[1].re*Q12[i].re+g[1].re*Q12[i].im;
+        Q12 = Q_sqrt(s[i],s0,a,L2);
+        Q32 = Q_sqrt_cubed(s[i],s0,a,L2,Q12);
         
-        M_inhom[i].im += f[0].im*Q32[i].re+g[0].im*Q32[i].im;
-        M_inhom[i].im += f[1].im*Q12[i].re+g[1].im*Q12[i].im;
+        M_inhom[i].re += M.re*R32.re+M.im*R32.im;
+        M_inhom[i].im += M.im*R32.re-M.re*R32.im;
+        
+        M_inhom[i].re += f[0].re*Q32.re+g[0].re*Q32.im;
+        M_inhom[i].re += f[1].re*Q12.re+g[1].re*Q12.im;
+        
+        M_inhom[i].im += f[0].im*Q32.re+g[0].im*Q32.im;
+        M_inhom[i].im += f[1].im*Q12.re+g[1].im*Q12.im;
         
         M_inhom[i].re *= pow(s[i],(double)n)/M_PI;
         M_inhom[i].im *= pow(s[i],(double)n)/M_PI;
@@ -366,12 +373,10 @@ void inhomogenity_sqrt_cubed_cv_minus(complex *M_inhom, complex_spline *M_hat, c
     gsl_interp_accel_free(acc2);
 }
 
-void inhomogenity_sqrt_cubed_below_cut(complex *M_inhom, complex_spline *M_hat, complex *f, complex *g, double *s, complex *Q12, complex *Q32, double s0, double L2, int N, int n) {
+void inhomogenity_sqrt_cubed_below_cut(complex *M_inhom, complex_spline *M_hat, complex *f, complex *g, double *s, double s0, double a, double L2, int N, int n) {
     int i,N_int;
-    double a,am,ap,eps,error,pts[3],log_const;
-    complex result,M_const;
-    
-    a = METAP_M_MPION_SQUARED;
+    double am,ap,eps,error,pts[3],log_const;
+    complex result,M_const,Q12,Q32;
     
     double *M_re = (double *)malloc(N*sizeof(double));
     double *M_im = (double *)malloc(N*sizeof(double));
@@ -453,11 +458,14 @@ void inhomogenity_sqrt_cubed_below_cut(complex *M_inhom, complex_spline *M_hat, 
         M_inhom[i].re = result.re+M_const.re*log_const;
         M_inhom[i].im = result.im+M_const.im*log_const;
         
-        M_inhom[i].re += f[0].re*Q32[i].re+g[0].re*Q32[i].im;
-        M_inhom[i].re += f[1].re*Q12[i].re+g[1].re*Q12[i].im;
+        Q12 = Q_sqrt(s[i],s0,a,L2);
+        Q32 = Q_sqrt_cubed(s[i],s0,a,L2,Q12);
         
-        M_inhom[i].im += f[0].im*Q32[i].re+g[0].im*Q32[i].im;
-        M_inhom[i].im += f[1].im*Q12[i].re+g[1].im*Q12[i].im;
+        M_inhom[i].re += f[0].re*Q32.re+g[0].re*Q32.im;
+        M_inhom[i].re += f[1].re*Q12.re+g[1].re*Q12.im;
+        
+        M_inhom[i].im += f[0].im*Q32.re+g[0].im*Q32.im;
+        M_inhom[i].im += f[1].im*Q12.re+g[1].im*Q12.im;
         
         //printf("%.10e %.10e %.10e\n",s[i],M_inhom[i].re,M_inhom[i].im);
         
@@ -470,12 +478,10 @@ void inhomogenity_sqrt_cubed_below_cut(complex *M_inhom, complex_spline *M_hat, 
     gsl_interp_accel_free(acc2);
 }
 
-void inhomogenity_sqrt_cubed_complex(complex *M_inhom, complex_spline *M_hat, complex *f, complex *g, complex *s, complex *Q12_f, complex *Q32_f, complex *Q12_g, complex *Q32_g, double s0, double L2, int N, int n) {
+void inhomogenity_sqrt_cubed_complex(complex *M_inhom, complex_spline *M_hat, complex *f, complex *g, complex *s, char plusminus, double s0, double a, double L2, int N, int n) {
     int i,N_int;
-    double a,am,ap,eps,error,pts[3],r,phi;
-    complex result,temp,M_const,log_const;
-    
-    a = METAP_M_MPION_SQUARED;
+    double am,ap,eps,error,pts[3],r,phi;
+    complex result,temp,M_const,log_const,Q12_f,Q32_f,Q12_g,Q32_g;
     
     N_int = 1500;
     eps = 1.0e-12;
@@ -538,6 +544,20 @@ void inhomogenity_sqrt_cubed_complex(complex *M_inhom, complex_spline *M_hat, co
     pts[2] = L2;
     
     for (i=0; i<N; i++) {
+        switch (plusminus) {
+            case '+':
+                break;
+                
+            case '-':
+                s[i].im *= -1.;
+                break;
+                
+            default:
+                printf("FATAL ERROR: In function inhomogenity_sqrt_cubed_complex, plusminus has to be '+' or '-', '%c' is unknown!",plusminus);
+                exit(1);
+                break;
+        }
+        
         F_re_sing.params = &s[i];
         F_im_sing.params = &s[i];
         
@@ -551,8 +571,14 @@ void inhomogenity_sqrt_cubed_complex(complex *M_inhom, complex_spline *M_hat, co
         M_inhom[i].re = result.re+log_const.re*M_const.re-log_const.im*M_const.im;
         M_inhom[i].im = result.im+log_const.re*M_const.im+log_const.im*M_const.re;
         
-        M_inhom[i].re += f[0].re*Q32_f[i].re-f[0].im*Q32_f[i].im+f[1].re*Q12_f[i].re-f[1].im*Q12_f[i].im+g[0].re*Q32_g[i].re-g[0].im*Q32_g[i].im+g[1].re*Q12_g[i].re-g[1].im*Q12_g[i].im;
-        M_inhom[i].im += f[0].im*Q32_f[i].re+f[0].re*Q32_f[i].im+f[1].im*Q12_f[i].re+f[1].re*Q12_f[i].im+g[0].im*Q32_g[i].re+g[0].re*Q32_g[i].im+g[1].im*Q12_g[i].re+g[1].re*Q12_g[i].im;
+        Q12_f = Q_sqrt_complex_f(s[i],s0,a);
+        Q32_f = Q_sqrt_cubed_complex_f(s[i],s0,a,Q12_f);
+        
+        Q12_g = Q_sqrt_complex_g(s[i],a,L2);
+        Q32_g = Q_sqrt_cubed_complex_g(s[i],a,L2,Q12_g);
+        
+        M_inhom[i].re += f[0].re*Q32_f.re-f[0].im*Q32_f.im+f[1].re*Q12_f.re-f[1].im*Q12_f.im+g[0].re*Q32_g.re-g[0].im*Q32_g.im+g[1].re*Q12_g.re-g[1].im*Q12_g.im;
+        M_inhom[i].im += f[0].im*Q32_f.re+f[0].re*Q32_f.im+f[1].im*Q12_f.re+f[1].re*Q12_f.im+g[0].im*Q32_g.re+g[0].re*Q32_g.im+g[1].im*Q12_g.re+g[1].re*Q12_g.im;
         
         r = pow(sqrt(s[i].re*s[i].re+s[i].im*s[i].im),(double)n)/M_PI;
         phi = n*atan2(s[i].im,s[i].re);
@@ -563,6 +589,20 @@ void inhomogenity_sqrt_cubed_complex(complex *M_inhom, complex_spline *M_hat, co
         M_inhom[i].re = temp.re;
         M_inhom[i].im = temp.im;
         
+        switch (plusminus) {
+            case '+':
+                break;
+                
+            case '-':
+                s[i].im *= -1.;
+                break;
+                
+            default:
+                printf("FATAL ERROR: In function inhomogenity_sqrt_cubed_complex, plusminus has to be '+' or '-', '%c' is unknown!",plusminus);
+                exit(1);
+                break;
+        }
+        
         //printf("%d %.10e %.10e\n",i,M_inhom[i].re,M_inhom[i].im);
     }
     
@@ -571,9 +611,12 @@ void inhomogenity_sqrt_cubed_complex(complex *M_inhom, complex_spline *M_hat, co
     gsl_interp_accel_free(acc2);
 }
 
-void build_inhomogenity_sqrt_cubed(complex **M_inhom, complex_spline *M_hat, complex *F, complex *G, double s0, double L2, double *s_cv_plus, double *s_cv_minus, double *s_below_cut, complex *s_complex, complex *R32_cv_plus, complex *Q12_cv_plus, complex *Q32_cv_plus, complex *R32_cv_minus, complex *Q12_cv_minus, complex *Q32_cv_minus, complex *Q12_below_cut, complex *Q32_below_cut, complex *Q12_complex_f, complex *Q32_complex_f, complex *Q12_complex_g, complex *Q32_complex_g, int *N, int n) {
-    inhomogenity_sqrt_cubed_below_cut(M_inhom[3],M_hat,F,G,s_below_cut,Q12_below_cut,Q32_below_cut,s0,L2,N[3],n);
-    inhomogenity_sqrt_cubed_cv_plus(M_inhom[0],M_hat,F,G,s_cv_plus,R32_cv_plus,Q12_cv_plus,Q32_cv_plus,s0,L2,1.,N[0],n);
-    inhomogenity_sqrt_cubed_cv_minus(M_inhom[1],M_hat,F,G,s_cv_minus,R32_cv_minus,Q12_cv_minus,Q32_cv_minus,s0,L2,N[1],n);
-    inhomogenity_sqrt_cubed_complex(M_inhom[2],M_hat,F,G,s_complex,Q12_complex_f,Q32_complex_f,Q12_complex_g,Q32_complex_g,s0,L2,N[2],n);
+void build_inhomogenity_sqrt_cubed(complex **M_inhom, complex_spline *M_hat, complex *F, complex *G, double s0, double a, double L2, double *s_cv_plus, double *s_cv_minus, double *s_below_cut, complex **s_cmp, int *N, int n) {
+    inhomogenity_sqrt_cubed_below_cut(M_inhom[2],M_hat,F,G,s_below_cut,s0,a,L2,N[2],n);
+    inhomogenity_sqrt_cubed_cv_plus(M_inhom[0],M_hat,F,G,s_cv_plus,s0,a,L2,1.,N[0],n);
+    inhomogenity_sqrt_cubed_cv_minus(M_inhom[1],M_hat,F,G,s_cv_minus,s0,a,L2,N[1],n);
+    inhomogenity_sqrt_cubed_complex(M_inhom[3],M_hat,F,G,s_cmp[0],'-',s0,a,L2,N[3],n);
+    inhomogenity_sqrt_cubed_complex(M_inhom[4],M_hat,F,G,s_cmp[1],'-',s0,a,L2,N[3],n);
+    inhomogenity_sqrt_cubed_complex(M_inhom[5],M_hat,F,G,s_cmp[0],'+',s0,a,L2,N[3],n);
+    inhomogenity_sqrt_cubed_complex(M_inhom[6],M_hat,F,G,s_cmp[1],'+',s0,a,L2,N[3],n);
 }

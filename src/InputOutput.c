@@ -3,8 +3,9 @@
 #include "InputOutput.h"
 
 //reading input file
-void input(char *filename, double *s_step, char *sub_const, int *n0_sub, int *n1_sub, int *n2_sub, char **file_phases) {
+void input(char *filename, double *s_step, double *L2, int *n0_sub, int *n1_sub, int *n2_sub) {
     int i;
+    char charged_or_neutral;
     FILE *fin;
     
     if ((fin=fopen(filename,"r"))==NULL) {
@@ -12,16 +13,47 @@ void input(char *filename, double *s_step, char *sub_const, int *n0_sub, int *n1
         fclose(fin);
         exit(1);
     }
-    fscanf(fin,"%lf %s %d %d %d",s_step,sub_const,n0_sub,n1_sub,n2_sub);
-    for (i=0; i<4; i++) {
-        fscanf(fin,"%s",file_phases[i]);
+    
+    fscanf(fin,"%lf %lf %d %c",s_step,L2,&N_ITER,&charged_or_neutral);
+    fscanf(fin,"%d %d %d",n0_sub,n1_sub,n2_sub);
+    fscanf(fin,"%d",&N_SUB_CONST);
+    
+    switch (charged_or_neutral) {
+        case 'C':
+            pi0pi0 = false;
+            printf("Calculate the system for charged pions.\n");
+            break;
+            
+        case 'N':
+            pi0pi0 = true;
+            printf("Calculate the system for neutral pions.\n");
+            break;
+            
+        default:
+            printf("\nFATAL ERROR: In input file. Unknown pipi System, choose 'C' for pi+pi- or 'N' for pi0pi0 system.\n");
+            exit(1);
+            break;
     }
+    
+    SUB_CONST = (char**)malloc(N_SUB_CONST*sizeof(char*));
+    for (i=0; i<N_SUB_CONST; i++) {
+        SUB_CONST[i] = (char*)malloc(2*sizeof(char));
+    }
+    
+    for (i=0; i<N_SUB_CONST; i++) {
+        fscanf(fin,"%s",SUB_CONST[i]);
+    }
+    
+    fscanf(fin,"%s %lf %lf %lf",&file_delta0,&delta0_params.L2,&delta0_params.n,&delta0_params.m);
+    fscanf(fin,"%s %lf %lf %lf",&file_delta1,&delta1_params.L2,&delta1_params.n,&delta1_params.m);
+    fscanf(fin,"%s %lf %lf %lf",&file_delta2,&delta2_params.L2,&delta2_params.n,&delta2_params.m);
+    fscanf(fin,"%s %lf %lf %lf",&file_delta_etapi,&delta_etapi_params.L2,&delta_etapi_params.n,&delta_etapi_params.m);
     
     fclose(fin);
 }
 
 //read in phase shift input from txt
-void phase_input(char *filename, gsl_spline **delta_spline, double *L2_delta, double *delta_const) {
+void phase_input(char *filename, gsl_spline **delta_spline) {
     int i,N,n;
     double *s, *phase;
     FILE *fin;
@@ -55,9 +87,6 @@ void phase_input(char *filename, gsl_spline **delta_spline, double *L2_delta, do
     }
     
     fclose(fin);
-    
-    *L2_delta = s[N-1];
-    *delta_const = phase[N-1];
     
     *delta_spline = gsl_spline_alloc(gsl_interp_cspline,N);
     
@@ -266,7 +295,7 @@ void Omnes_output(char *filename, complex **omnes0, complex **omnes1, complex **
     fout = fopen(filename,"w");
     for (i=0; i<N_below_cut; i++) {
         s = s_below_cut[i];
-        fprintf(fout,"%+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e\n",s,omnes0[3][i].re,omnes0[3][i].im,omnes1[3][i].re,omnes1[3][i].im,omnes2[3][i].re,omnes2[3][i].im);
+        fprintf(fout,"%+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e\n",s,omnes0[2][i].re,omnes0[2][i].im,omnes1[2][i].re,omnes1[2][i].im,omnes2[2][i].re,omnes2[2][i].im);
     }
     for (i=0; i<N_cv_plus; i++) {
         s = s_cv_plus[i];
@@ -296,6 +325,9 @@ void Inhomogenities_output(char *filename, complex **M0_avg, complex **M1_avg, c
         M2_hat.im = (M0_avg[0][i].im-3./2.*sigma*M1_avg[0][i].im-M1_avg[1][i].im+1./3.*M2_avg[0][i].im)*k;
         
         fprintf(fout,"%+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e\n",s[i],M0_hat.re,M0_hat.im,M1_hat.re,M1_hat.im,M2_hat.re,M2_hat.im);
+        
+        //fprintf(fout,"%+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e\n",s[i],M0_avg[0][i].re,M0_avg[0][i].im,M0_avg[1][i].re,M0_avg[1][i].im,M1_avg[0][i].re,M1_avg[0][i].im,M1_avg[1][i].re,M1_avg[1][i].im,M1_avg[2][i].re,M1_avg[2][i].im,M2_avg[0][i].re,M2_avg[0][i].im,M2_avg[1][i].re,M2_avg[1][i].im);
+        
 //        if (s[i]<METAP_M_MPION_SQUARED) {
 //            fprintf(fout,"%+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e\n",s[i],M0_hat.re,M0_hat.im,M1_hat.re,M1_hat.im,M2_hat.re,M2_hat.im);
 //        }
@@ -317,7 +349,7 @@ void Dispersion_integral_output(char *filename, complex **M0_inhom, complex **M1
     fout = fopen(filename,"w");
     for (i=0; i<N_below_cut; i++) {
         s = s_below_cut[i];
-        fprintf(fout,"%+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e\n",s,M0_inhom[3][i].re,M0_inhom[3][i].im,M1_inhom[3][i].re,M1_inhom[3][i].im,M2_inhom[3][i].re,M2_inhom[3][i].im);
+        fprintf(fout,"%+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e\n",s,M0_inhom[2][i].re,M0_inhom[2][i].im,M1_inhom[2][i].re,M1_inhom[2][i].im,M2_inhom[2][i].re,M2_inhom[2][i].im);
     }
     for (i=0; i<N_cv_plus; i++) {
         s = s_cv_plus[i];
@@ -337,7 +369,7 @@ void Amplitudes_output(char *filename, complex_spline *M0, complex_spline *M1, c
     fout = fopen(filename,"w");
     for (i=0; i<N_below_cut; i++) {
         s = s_below_cut[i];
-        fprintf(fout,"%+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e\n",s,gsl_spline_eval(M0[3].re,s,acc3),gsl_spline_eval(M0[3].im,s,acc3),gsl_spline_eval(M1[3].re,s,acc3),gsl_spline_eval(M1[3].im,s,acc3),gsl_spline_eval(M2[3].re,s,acc3),gsl_spline_eval(M2[3].im,s,acc3));
+        fprintf(fout,"%+.15e %+.15e %+.15e %+.15e %+.15e %+.15e %+.15e\n",s,gsl_spline_eval(M0[2].re,s,acc3),gsl_spline_eval(M0[2].im,s,acc3),gsl_spline_eval(M1[2].re,s,acc3),gsl_spline_eval(M1[2].im,s,acc3),gsl_spline_eval(M2[2].re,s,acc3),gsl_spline_eval(M2[2].im,s,acc3));
     }
     for (i=0; i<N_cv_plus; i++) {
         s = s_cv_plus[i];
