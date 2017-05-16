@@ -6,4 +6,6 @@
 *.txt
 *.dat
 *.npy
+# Executables
+EtaPrime
 

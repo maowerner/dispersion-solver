@@ -3,11 +3,11 @@
 
 cd src
 
-gcc $1\
+gcc-7 $1\
     -c -std=c99 \
     Basic.c PhaseShifts.c Grid.c Omnes.c Singularity.c AngularAverages.c InhomogenitySqrt.c InhomogenitySqrtCubed.c Amplitude.c InputOutput.c main_etap_eta2pi.c
 
-gcc -lm -O3 $(gsl-config --libs) *.o -o EtaPrime
+gcc-7 -lm -O3 $(gsl-config --libs) *.o -o EtaPrime
 
 rm *.o
 
